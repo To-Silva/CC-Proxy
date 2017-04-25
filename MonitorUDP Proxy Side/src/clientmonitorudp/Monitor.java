@@ -46,7 +46,7 @@ public class Monitor implements Runnable {
                 int i2 = receiveData[0] & 0xFF;
                 table.remove(server);
                 server.updatecpuLoad(i2);
-                System.out.println(ClIP + ": " +"CPU LOAD: "+ server.getCPULoad());
+                table.add(server);
             }
         }
     }

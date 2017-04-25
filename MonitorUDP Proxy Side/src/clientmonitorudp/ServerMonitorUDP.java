@@ -50,7 +50,7 @@ public class ServerMonitorUDP {
             Iterator it=table.iterator();
             while(it.hasNext()){
                 ServerStatus s=(ServerStatus) it.next();
-                System.out.println(s.getCPULoad());
+                System.out.println("host: "+s.getIP()+"\n\t-CPULoad:"+s.getCPULoad());
             }
             //for debugging
             
