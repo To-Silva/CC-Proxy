@@ -23,7 +23,7 @@ _02/05_
 ## register info ##
 
 |  tipo     | CPU-Load/Benchmark |  IP | seq.numb |
-| :---------------------------------------------- |
+| :-------: | :----------------: | :-: | :------: |
 | registo 0 |      benchmark     |  ip |     0    |
 |    1      |      cpu-load      |  ip |  numb++  |
 |  not 1    |        null        | N/A |   N/A    |
