@@ -25,8 +25,9 @@ public class ClientMonitorUDP {
         DatagramSocket clientSocket = new DatagramSocket();
         InetAddress IPAddress = InetAddress.getByName("192.168.1.4");
         InetAddress host = InetAddress.getLocalHost(); 
-        InetAddress IPad=InetAddress.getByName(host.toString().replaceAll(".*/", ""));
-        byte[] ip= IPad.getAddress();
+        String IPad=host.toString().replaceAll(".*/", "");
+        System.out.println(IPad);
+        byte[] ip= IPad.getBytes();
         byte[] sendData = new byte[100];
         
         long startTime = System.nanoTime();

@@ -44,8 +44,9 @@ public class ServerMonitorUDP {
             seqNumb=receiveData[0] & 0xFF;
             ipBytes=Arrays.copyOfRange(receiveData,2,receiveData.length);
             ip=new String(ipBytes);
+            System.out.println(ip);
             InetAddress ClIP = InetAddress.getByName(ip);
-            
+            System.out.println(ClIP);
             
             if(seqNumb==0){
                 if (!ips.contains(ClIP)){
