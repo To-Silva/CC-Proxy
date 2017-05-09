@@ -11,6 +11,7 @@ import java.io.IOException;
 import static java.lang.Thread.sleep;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentSkipListSet;
 
@@ -25,6 +26,10 @@ public class ServerMonitorUDP {
      */
     
     public static void main(String[] args) throws SocketException, IOException, InterruptedException {
+        int tipo, benchCPU,seqNumb;
+        byte[] ipBytes;
+        String ip;
+        
         ArrayList ips= new ArrayList();
         ConcurrentSkipListSet<ServerStatus> table = new ConcurrentSkipListSet<ServerStatus>(new serverComparator());
         DatagramSocket serverSocket= new DatagramSocket(5555);
@@ -35,15 +40,22 @@ public class ServerMonitorUDP {
             
             DatagramPacket receivePacket= new DatagramPacket(receiveData,receiveData.length);
             serverSocket.receive(receivePacket);
-            InetAddress ClIP= receivePacket.getAddress();
-            if (!ips.contains(ClIP)){
-                ips.add(ClIP);
-                //String receivedString=new String(receivePacket.getData());
-                receiveData = receivePacket.getData();
-                int i2 = receiveData[0] & 0xFF;
-                ServerStatus stat= new ServerStatus(i2,0,50,ClIP);
-                Thread t = new Thread(new Monitor(stat,table,serverSocket,ClIP));
-                t.start();
+            receiveData = receivePacket.getData();
+            seqNumb=receiveData[0] & 0xFF;
+            ipBytes=Arrays.copyOfRange(receiveData,2,receiveData.length);
+            ip=new String(ipBytes);
+            InetAddress ClIP = InetAddress.getByName(ip);
+            
+            
+            if(seqNumb==0){
+                if (!ips.contains(ClIP)){
+                    ips.add(ClIP);
+                    //String receivedString=new String(receivePacket.getData());
+                    benchCPU = receiveData[1] & 0xFF;
+                    ServerStatus stat= new ServerStatus(benchCPU,ClIP);
+                    Thread t = new Thread(new Monitor(stat,table,serverSocket,ClIP));
+                    t.start();
+                }
             }
             
             //for debugging 

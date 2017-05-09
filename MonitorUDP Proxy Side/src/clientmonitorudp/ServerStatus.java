@@ -15,16 +15,19 @@ import org.apache.commons.lang3.builder.CompareToBuilder;
  */
 public class ServerStatus {
 
-    private int valid;  //0 if outdated
-    private int cpuLoad,requestNum,benchmarkScore;
+    private int valid;  //0 if not initialized or outdated
+    private int cpuLoad,requestNum,benchmarkScore,packetsLost;
+    private float packetsLostTimeRatio;
     private InetAddress ip;
     
-    public ServerStatus(int c,int r,int b,InetAddress i){
-        cpuLoad=c;
-        requestNum=r;
+    public ServerStatus(int b,InetAddress i){
         benchmarkScore=b;
+        requestNum=0;
         ip=i;
+        packetsLost=0;
+        packetsLostTimeRatio=0;
     }
+    
     
     public void updatecpuLoad(int c){
         this.cpuLoad=c;
@@ -34,6 +37,10 @@ public class ServerStatus {
     }
     public void decreaseRN(){
         this.requestNum--;
+    }
+    
+    public void updatePL(int pl){
+        this.packetsLost+=pl;
     }
     
     public InetAddress getIP(){
@@ -52,4 +59,7 @@ public class ServerStatus {
     public int getBenchmark(){
         return this.benchmarkScore;
     }    
+    public int getPacketsLost(){
+        return this.packetsLost;
+    }
 }

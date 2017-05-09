@@ -44,24 +44,22 @@ public class ClientMonitorUDP {
         watcher.start();
         while (true) {
             i=2;
+            sendData[0]=(byte)pi.getSN();
             if (pi.getSN()==100) {pi.setSN(1);}
             
             if (pi.getSN()!=0){
-                sendData[0]=(byte)1;
                 OperatingSystemMXBean osBean=(OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
                 cpuLD=((osBean.getSystemCpuLoad())*100);
                 cpuLoad=(int)cpuLD;
                 sendData[1]=(byte)cpuLD;
             }else{
-                sendData[0]=(byte)0;
                 sendData[1]=(byte)benchmarkScore;
             }
             for(byte b : ip){
                 sendData[i]=b;
                 i++;
             }
-            sendData[ipSize]=(byte)'*';
-            sendData[ipSize+1]=(byte)pi.getSN();
+            
             
             DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,IPAddress,5555);             
             clientSocket.send(sendPacket);

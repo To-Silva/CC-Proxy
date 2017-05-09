@@ -22,16 +22,20 @@ public class Monitor implements Runnable {
     private ConcurrentSkipListSet<ServerStatus> table;
     private DatagramSocket serverSocket;
     private InetAddress ClIP;
+    private int prevSeqNum;
     
     public Monitor (ServerStatus s,ConcurrentSkipListSet<ServerStatus> t,DatagramSocket d,InetAddress ClIP){
         this.server=s;
         this.table=t;
         this.serverSocket=d;
         this.ClIP=ClIP;
+        prevSeqNum=0;
     }
     
     @Override
     public void run(){
+        int seqNum,cpuL;
+        long startTime = System.currentTimeMillis();
         byte[] receiveData= new byte[100];
         table.add(server);
         while(true){
@@ -43,9 +47,17 @@ public class Monitor implements Runnable {
             }
             InetAddress ip= receivePacket.getAddress();
             if (server.getIP().equals(ip)){
-                int i2 = receiveData[0] & 0xFF;
+                seqNum=receiveData[0] & 0xFF;
+                cpuL = receiveData[1] & 0xFF;
                 table.remove(server);
-                server.updatecpuLoad(i2);
+                if (Math.abs(seqNum-prevSeqNum)>1||seqNum==prevSeqNum){
+                    if (seqNum>prevSeqNum){
+                        server.updatePL(seqNum-prevSeqNum);
+                    }else{
+                        server.updatePL((100-prevSeqNum)+seqNum);
+                    }
+                }
+                server.updatecpuLoad(cpuL);
                 table.add(server);
             }
         }
