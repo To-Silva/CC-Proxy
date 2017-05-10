@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,6 +38,8 @@ public class Monitor implements Runnable {
         int seqNum,cpuL;
         long startTime = System.currentTimeMillis();
         byte[] receiveData= new byte[100];
+        byte[] ipBytes;
+        String ip;
         table.add(server);
         while(true){
             DatagramPacket receivePacket= new DatagramPacket(receiveData,receiveData.length);
@@ -45,18 +48,22 @@ public class Monitor implements Runnable {
             } catch (IOException ex) {
                 Logger.getLogger(Monitor.class.getName()).log(Level.SEVERE, null, ex);
             }
-            InetAddress ip= receivePacket.getAddress();
-            if (server.getIP().equals(ip)){
+            ipBytes=Arrays.copyOfRange(receiveData,2,receiveData.length);
+            ip=new String(ipBytes);
+            String IPad=server.getIP().toString().replaceAll(".*/", "").trim();
+            if (IPad.equals(ip.trim())){
                 seqNum=receiveData[0] & 0xFF;
                 cpuL = receiveData[1] & 0xFF;
                 table.remove(server);
-                if (Math.abs(seqNum-prevSeqNum)>1||seqNum==prevSeqNum){
+                System.out.println("prev: "+prevSeqNum+"\n seq: "+seqNum);
+                if ((Math.abs(seqNum-prevSeqNum)>1||seqNum==prevSeqNum)&&seqNum!=0){
                     if (seqNum>prevSeqNum){
-                        server.updatePL(seqNum-prevSeqNum);
+                        server.updatePL(seqNum-prevSeqNum-1);
                     }else{
-                        server.updatePL((100-prevSeqNum)+seqNum);
+                        server.updatePL((100-prevSeqNum)+seqNum-1);
                     }
                 }
+                prevSeqNum=seqNum;
                 server.updatecpuLoad(cpuL);
                 table.add(server);
             }

@@ -46,10 +46,10 @@ public class ServerMonitorUDP {
             ip=new String(ipBytes);
             System.out.println(ip);
             InetAddress ClIP = InetAddress.getByName(ip);
-            System.out.println(ClIP);
             
-            if(seqNumb==0){
-                if (!ips.contains(ClIP)){
+            
+            if (!ips.contains(ClIP)){
+                if(seqNumb==0){
                     ips.add(ClIP);
                     //String receivedString=new String(receivePacket.getData());
                     benchCPU = receiveData[1] & 0xFF;
@@ -57,17 +57,21 @@ public class ServerMonitorUDP {
                     Thread t = new Thread(new Monitor(stat,table,serverSocket,ClIP));
                     t.start();
                 }
+                byte[] sendData = new byte[2];
+                sendData[0]=(byte)0;
+                DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,ClIP,5555);  
+                serverSocket.send(sendPacket);
+                System.out.println("Permission granted to "+ClIP);
             }
             
             //for debugging 
             Iterator it=table.iterator();
             while(it.hasNext()){
                 ServerStatus s=(ServerStatus) it.next();
-                System.out.println("host: "+s.getIP()+"\n\t-CPULoad:"+s.getCPULoad());
+                System.out.println("host: "+(s.getIP()).toString().replaceAll(".*/", "")+"\n\t-CPU Score:"+s.getBenchmark()+"\t-CPU Load:"+s.getCPULoad()+"\n\t-Number of packets lost:"+s.getPacketsLost());
             }
             //for debugging
             
-            sleep(1000);
         }
     }
 }
