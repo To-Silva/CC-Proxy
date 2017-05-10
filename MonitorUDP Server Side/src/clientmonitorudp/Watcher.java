@@ -30,32 +30,30 @@ public class Watcher implements Runnable {
     
     @Override
     public void run() {
-        while(true){
-            try{
-                DatagramSocket serverSocket= new DatagramSocket(5555);
-                byte[] receiveData= new byte[2];
-                InetAddress Address = InetAddress.getLocalHost(); 
+        try{
+            DatagramSocket serverSocket= new DatagramSocket(5555);
+            while(true){
 
-                DatagramPacket receivePacket= new DatagramPacket(receiveData,receiveData.length);
-                serverSocket.receive(receivePacket);
-                InetAddress ClIP= receivePacket.getAddress();
-                
-                receiveData = receivePacket.getData();
-                int i2 = receiveData[0] & 0xFF;
-                
-                if (i2==0){
-                    pi.setSN(1);
-                }
+                    byte[] receiveData= new byte[2];
 
-                sleep(1000);
-                
-            } catch (SocketException  | UnknownHostException ex) {
-                Logger.getLogger(Watcher.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(Watcher.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (IOException ex) {
-                Logger.getLogger(Watcher.class.getName()).log(Level.SEVERE, null, ex);
+                    DatagramPacket receivePacket= new DatagramPacket(receiveData,receiveData.length);
+                    serverSocket.receive(receivePacket);
+
+                    receiveData = receivePacket.getData();
+                    int i2 = receiveData[0] & 0xFF;
+                    System.out.println("received permission code: "+i2);
+
+                    if (i2==0){
+                        pi.setSN(1);
+                    }
+
+                    sleep(1000);
+
             }
-        }
+        } catch (SocketException  | UnknownHostException ex) {
+            Logger.getLogger(Watcher.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InterruptedException | IOException ex) {
+            Logger.getLogger(Watcher.class.getName()).log(Level.SEVERE, null, ex);
+        }        
     }
 }

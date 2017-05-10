@@ -23,10 +23,10 @@ public class ClientMonitorUDP {
         double cpuLD;
         int cpuLoad,i;
         DatagramSocket clientSocket = new DatagramSocket();
-        InetAddress IPAddress = InetAddress.getByName("192.168.1.4");
+        InetAddress IPAddress = InetAddress.getByName("192.168.1.2");
         InetAddress host = InetAddress.getLocalHost(); 
         String IPad=host.toString().replaceAll(".*/", "");
-        System.out.println(IPad);
+        System.out.println(IPAddress);
         byte[] ip= IPad.getBytes();
         byte[] sendData = new byte[100];
         
@@ -44,15 +44,17 @@ public class ClientMonitorUDP {
         Thread watcher = new Thread(new Watcher(pi));
         watcher.start();
         while (true) {
+            System.out.println("Sequence number: "+pi.getSN());
             i=2;
             sendData[0]=(byte)pi.getSN();
-            if (pi.getSN()==100) {pi.setSN(1);}
+            if (pi.getSN()==100) {pi.setSN(0);}
             
             if (pi.getSN()!=0){
                 OperatingSystemMXBean osBean=(OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
                 cpuLD=((osBean.getSystemCpuLoad())*100);
                 cpuLoad=(int)cpuLD;
                 sendData[1]=(byte)cpuLD;
+                pi.setSN(pi.getSN()+1);                
             }else{
                 sendData[1]=(byte)benchmarkScore;
             }
@@ -64,7 +66,6 @@ public class ClientMonitorUDP {
             
             DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,IPAddress,5555);             
             clientSocket.send(sendPacket);
-            pi.setSN(pi.getSN()+1);
             sleep(1000);
         }
     }    
