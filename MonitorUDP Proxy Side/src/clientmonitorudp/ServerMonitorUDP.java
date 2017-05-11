@@ -12,7 +12,9 @@ import static java.lang.Thread.sleep;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
@@ -30,7 +32,8 @@ public class ServerMonitorUDP {
         byte[] ipBytes;
         String ip;
         
-        ArrayList ips= new ArrayList();
+        HashMap<InetAddress,ArrayBlockingQueue> packetQueues= new HashMap<InetAddress,ArrayBlockingQueue>();
+        
         ConcurrentSkipListSet<ServerStatus> table = new ConcurrentSkipListSet<ServerStatus>(new serverComparator());
         DatagramSocket serverSocket= new DatagramSocket(5555);
         byte[] receiveData= new byte[100];
@@ -48,13 +51,15 @@ public class ServerMonitorUDP {
             InetAddress ClIP = InetAddress.getByName(ip);
             
             
-            if (!ips.contains(ClIP)){
+            if (!packetQueues.containsKey(ClIP)){
                 if(seqNumb==0){
-                    ips.add(ClIP);
+                    ArrayBlockingQueue packets=new ArrayBlockingQueue(100);
+                    packets.add(receiveData);
+                    packetQueues.put(ClIP, packets);
                     //String receivedString=new String(receivePacket.getData());
                     benchCPU = receiveData[1] & 0xFF;
                     ServerStatus stat= new ServerStatus(benchCPU,ClIP);
-                    Thread t = new Thread(new Monitor(stat,table,serverSocket,ClIP));
+                    Thread t = new Thread(new Monitor(table,packets,stat,ClIP));
                     t.start();
                 }
                 byte[] sendData = new byte[2];
@@ -62,6 +67,8 @@ public class ServerMonitorUDP {
                 DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,ClIP,5555);  
                 serverSocket.send(sendPacket);
                 System.out.println("Permission granted to "+ClIP);
+            }else{
+                packetQueues.get(ClIP).add(receiveData);
             }
             
             //for debugging 

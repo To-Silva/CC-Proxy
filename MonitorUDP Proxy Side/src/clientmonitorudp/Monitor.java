@@ -9,7 +9,9 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.util.Arrays;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,16 +21,16 @@ import java.util.logging.Logger;
  * @author To_si
  */
 public class Monitor implements Runnable {
+    private ArrayBlockingQueue packets;
     private ServerStatus server;
     private ConcurrentSkipListSet<ServerStatus> table;
-    private DatagramSocket serverSocket;
     private InetAddress ClIP;
     private int prevSeqNum;
     
-    public Monitor (ServerStatus s,ConcurrentSkipListSet<ServerStatus> t,DatagramSocket d,InetAddress ClIP){
+    public Monitor (ConcurrentSkipListSet<ServerStatus> t,ArrayBlockingQueue p,ServerStatus s,InetAddress ClIP){
         this.server=s;
+        this.packets=p;
         this.table=t;
-        this.serverSocket=d;
         this.ClIP=ClIP;
         prevSeqNum=0;
     }
@@ -37,17 +39,12 @@ public class Monitor implements Runnable {
     public void run(){
         int seqNum,cpuL;
         long startTime = System.currentTimeMillis();
-        byte[] receiveData= new byte[100];
         byte[] ipBytes;
         String ip;
+        
         table.add(server);
         while(true){
-            DatagramPacket receivePacket= new DatagramPacket(receiveData,receiveData.length);
-            try {            
-                serverSocket.receive(receivePacket);
-            } catch (IOException ex) {
-                Logger.getLogger(Monitor.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            byte[] receiveData= (byte[]) packets.poll();
             ipBytes=Arrays.copyOfRange(receiveData,2,receiveData.length);
             ip=new String(ipBytes);
             String IPad=server.getIP().toString().replaceAll(".*/", "").trim();
