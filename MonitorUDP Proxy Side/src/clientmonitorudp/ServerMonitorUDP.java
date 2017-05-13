@@ -53,7 +53,7 @@ public class ServerMonitorUDP {
             
             if (!packetQueues.containsKey(ClIP)){
                 if(seqNumb==0){
-                    ArrayBlockingQueue packets=new ArrayBlockingQueue(100);
+                    ArrayBlockingQueue<byte[]> packets=new ArrayBlockingQueue<>(100);
                     packets.add(receiveData);
                     packetQueues.put(ClIP, packets);
                     //String receivedString=new String(receivePacket.getData());
