@@ -16,6 +16,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  *
@@ -33,6 +35,7 @@ public class ServerMonitorUDP {
         String ip;
         
         HashMap<InetAddress,ArrayBlockingQueue> packetQueues= new HashMap<InetAddress,ArrayBlockingQueue>();
+        ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newCachedThreadPool();
         
         ConcurrentSkipListSet<ServerStatus> table = new ConcurrentSkipListSet<ServerStatus>(new serverComparator());
         DatagramSocket serverSocket= new DatagramSocket(5555);
@@ -59,8 +62,8 @@ public class ServerMonitorUDP {
                     //String receivedString=new String(receivePacket.getData());
                     benchCPU = receiveData[1] & 0xFF;
                     ServerStatus stat= new ServerStatus(benchCPU,ClIP);
-                    Thread t = new Thread(new Monitor(table,packets,stat,ClIP));
-                    t.start();
+                    Monitor monitor=new Monitor(table,packets,stat,ClIP);
+                    threadPool.execute(monitor);
                 }
                 byte[] sendData = new byte[2];
                 sendData[0]=(byte)0;
@@ -68,7 +71,16 @@ public class ServerMonitorUDP {
                 serverSocket.send(sendPacket);
                 System.out.println("Permission granted to "+ClIP);
             }else{
-                packetQueues.get(ClIP).add(receiveData);
+                if (seqNumb!=0){
+                    packetQueues.get(ClIP).add(receiveData);
+                }else{
+                    byte[] sendData = new byte[2];
+                    sendData[0]=(byte)0;
+                    DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,ClIP,5555);  
+                    serverSocket.send(sendPacket);
+                    System.out.println("Permission granted to "+ClIP+" after attempt to reconnect.");                    
+                    packetQueues.get(ClIP).add(receiveData);
+                }
             }
             
             //for debugging 

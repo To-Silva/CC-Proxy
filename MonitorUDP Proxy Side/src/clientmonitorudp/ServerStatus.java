@@ -28,6 +28,9 @@ public class ServerStatus {
         packetsLostTimeRatio=0;
     }
     
+    public void setBenchmark(int b){
+        benchmarkScore=b;
+    }
     
     public void updatecpuLoad(int c){
         this.cpuLoad=c;

@@ -47,13 +47,11 @@ public class Monitor implements Runnable {
             byte[] receiveData;
             try {
                 receiveData = packets.take();
-                ipBytes=Arrays.copyOfRange(receiveData,2,receiveData.length);
-                ip=new String(ipBytes);
-                String IPad=server.getIP().toString().replaceAll(".*/", "").trim();
-                if (IPad.equals(ip.trim())){
-                    seqNum=receiveData[0] & 0xFF;
-                    cpuL = receiveData[1] & 0xFF;
-                    table.remove(server);
+                
+                seqNum=receiveData[0] & 0xFF;
+                cpuL = receiveData[1] & 0xFF;
+                table.remove(server);
+                if(seqNum!=0){
                     System.out.println("prev: "+prevSeqNum+"\n seq: "+seqNum);
                     if ((Math.abs(seqNum-prevSeqNum)>1||seqNum==prevSeqNum)&&seqNum!=0){
                         if (seqNum>prevSeqNum){
@@ -64,8 +62,13 @@ public class Monitor implements Runnable {
                     }
                     prevSeqNum=seqNum;
                     server.updatecpuLoad(cpuL);
-                    table.add(server);
+                }else{
+                        server.setBenchmark(cpuL);
+                        prevSeqNum=0;
+                        server.updatePL(0);
                 }
+                table.add(server);
+                    
             } catch (InterruptedException ex) {
                 Logger.getLogger(Monitor.class.getName()).log(Level.SEVERE, null, ex);
             }                
