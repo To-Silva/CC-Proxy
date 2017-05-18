@@ -7,6 +7,7 @@
 import clientmonitorudp.Monitor;
 import clientmonitorudp.ServerStatus;
 import clientmonitorudp.StatusManager;
+import clientmonitorudp.TCPlayer;
 import clientmonitorudp.serverComparator;
 import java.io.IOException;
 import static java.lang.Thread.sleep;
@@ -41,8 +42,10 @@ public class ServerMonitorUDP {
         HashMap<InetAddress,ArrayBlockingQueue> packetType0Queues= new HashMap<>();
         HashMap<InetAddress,ArrayBlockingQueue> packetType1Queues= new HashMap<>();
         ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newCachedThreadPool();
-        
         ConcurrentSkipListSet<ServerStatus> table = new ConcurrentSkipListSet<>(new serverComparator());
+        TCPlayer tcp= new TCPlayer(table);
+        threadPool.execute(tcp);        
+        
         DatagramSocket serverSocket= new DatagramSocket(5555);
         byte[] receiveData= new byte[100];
         InetAddress Address = InetAddress.getLocalHost(); 

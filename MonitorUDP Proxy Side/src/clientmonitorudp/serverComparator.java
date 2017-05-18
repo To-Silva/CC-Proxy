@@ -21,13 +21,13 @@ public class serverComparator implements Comparator<ServerStatus> {
                     if (s1.getBenchmark()>s2.getBenchmark()){
                         ratio=s1.getBenchmark()/s2.getBenchmark();
                         if(ratio>(s1.getRN()-s2.getRN())){
-                            return 1;
-                        }else{return -1;}
+                            return -1;
+                        }else{return 1;}
                     }else{
                         ratio=s2.getBenchmark()/s1.getBenchmark();
                         if(ratio>(s2.getRN()-s1.getRN())){
-                            return -1;
-                        }else{return 1;}                        
+                            return 1;
+                        }else{return -1;}                        
                     }        
                 }
      };
@@ -40,8 +40,8 @@ public class serverComparator implements Comparator<ServerStatus> {
                         return 0;
                     }else{
                         if (s1.getCPULoad()>s2.getCPULoad()){
-                            return -1;
-                        }else{return 1;}
+                            return 1;
+                        }else{return -1;}
                     }
                 }
      };
