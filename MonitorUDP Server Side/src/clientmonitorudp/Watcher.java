@@ -22,7 +22,7 @@ import java.util.logging.Logger;
  */
 public class Watcher implements Runnable {
     
-    private PacketInfo pi;
+    private final PacketInfo pi;
     
     public Watcher(PacketInfo pi){
         this.pi=pi;
@@ -30,30 +30,34 @@ public class Watcher implements Runnable {
     
     @Override
     public void run() {
+        boolean initialized=false;
         try{
             DatagramSocket serverSocket= new DatagramSocket(5555);
             while(true){
 
-                    byte[] receiveData= new byte[2];
+                byte[] receiveData= new byte[2];
 
-                    DatagramPacket receivePacket= new DatagramPacket(receiveData,receiveData.length);
-                    serverSocket.receive(receivePacket);
+                DatagramPacket receivePacket= new DatagramPacket(receiveData,receiveData.length);
+                serverSocket.receive(receivePacket);
 
-                    receiveData = receivePacket.getData();
-                    int i2 = receiveData[0] & 0xFF;
-                    System.out.println("received permission code: "+i2);
-
-                    if (i2==0){
+                receiveData = receivePacket.getData();
+                int i2 = receiveData[0] & 0xFF;
+                System.out.println("received poll");
+                synchronized(pi){
+                    if (!initialized){
                         pi.setSN(1);
+                        initialized=true;
+                    }else{
+                        pi.setPoll(true);
+                        pi.notify(); 
                     }
-
-                    sleep(1000);
+                }
 
             }
         } catch (SocketException  | UnknownHostException ex) {
             Logger.getLogger(Watcher.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InterruptedException | IOException ex) {
+        } catch (IOException ex) {
             Logger.getLogger(Watcher.class.getName()).log(Level.SEVERE, null, ex);
-        }        
+        }      
     }
 }

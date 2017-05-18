@@ -13,6 +13,7 @@ import java.net.SocketException;
 import java.util.Arrays;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,38 +38,53 @@ public class Monitor implements Runnable {
     
     @Override
     public void run(){
-        int seqNum,cpuL;
+        boolean timedOut=false,active=true;
+        int type,seqNum,cpuL;
         long startTime = System.currentTimeMillis();
         byte[] ipBytes;
         String ip;
         
         table.add(server);
-        while(true){
+        while(active){
             byte[] receiveData;
             try {
-                receiveData = packets.take();
-                
-                seqNum=receiveData[0] & 0xFF;
-                cpuL = receiveData[1] & 0xFF;
-                table.remove(server);
-                if(seqNum!=0){
-                    System.out.println("prev: "+prevSeqNum+"\n seq: "+seqNum);
-                    if ((Math.abs(seqNum-prevSeqNum)>1||seqNum==prevSeqNum)&&seqNum!=0){
-                        if (seqNum>prevSeqNum){
-                            server.updatePL(seqNum-prevSeqNum-1);
-                        }else{
-                            server.updatePL((100-prevSeqNum)+seqNum-1);
-                        }
-                    }
-                    prevSeqNum=seqNum;
-                    server.updatecpuLoad(cpuL);
+                if (!timedOut){
+                    receiveData = packets.poll(2,TimeUnit.SECONDS);
                 }else{
-                        server.setBenchmark(cpuL);
-                        prevSeqNum=0;
-                        server.updatePL(0);
+                    receiveData = packets.poll(10,TimeUnit.SECONDS);
+                    if(receiveData!=null){
+                        timedOut=false;
+                        server.setValid(1);
+                    }else{
+                        table.remove(server);
+                        active=false;
+                        System.out.println("Server with IP "+server.getIP()+" got removed for inactivity.");
+                    }
                 }
-                table.add(server);
-                    
+                if(active){
+                    if(receiveData!=null){
+                        seqNum=receiveData[1] & 0xFF;
+                        if(seqNum!=0){
+                            if (server.getValid()==0)server.setValid(1);
+                            System.out.println("prev: "+prevSeqNum+"\n seq: "+seqNum);
+                            if ((Math.abs(seqNum-prevSeqNum)>1||seqNum==prevSeqNum)&&seqNum!=0){
+                                if (seqNum>prevSeqNum){
+                                    server.updatePL(seqNum-prevSeqNum-1);
+                                }else{
+                                    server.updatePL((100-prevSeqNum)+seqNum-1);
+                                }
+                            }
+                            prevSeqNum=seqNum;
+                        }else{
+                                prevSeqNum=0;
+                                server.updatePL(0);
+                        }                            
+                    }else{
+                        server.setValid(0);
+                        System.out.println("Server with IP "+server.getIP()+" timed out.");
+                        timedOut=true;
+                    }
+                }
             } catch (InterruptedException ex) {
                 Logger.getLogger(Monitor.class.getName()).log(Level.SEVERE, null, ex);
             }                

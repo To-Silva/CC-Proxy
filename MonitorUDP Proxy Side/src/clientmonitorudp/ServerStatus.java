@@ -26,6 +26,11 @@ public class ServerStatus {
         ip=i;
         packetsLost=0;
         packetsLostTimeRatio=0;
+        valid=0;
+    }
+    
+    public void setValid(int v){
+        valid=v;
     }
     
     public void setBenchmark(int b){
