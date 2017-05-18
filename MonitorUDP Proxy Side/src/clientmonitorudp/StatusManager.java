@@ -12,6 +12,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
@@ -28,22 +29,22 @@ public class StatusManager implements Runnable {
     private ServerStatus server;
     private ConcurrentSkipListSet<ServerStatus> table;
     private InetAddress ClIP;
+    private HashMap<InetAddress,ArrayBlockingQueue> queues;
     
-    public StatusManager (ConcurrentSkipListSet<ServerStatus> t,ArrayBlockingQueue p,ServerStatus s,InetAddress ClIP,DatagramSocket socket){
+    public StatusManager (ConcurrentSkipListSet<ServerStatus> t,ArrayBlockingQueue p,ServerStatus s,InetAddress ClIP,DatagramSocket socket,HashMap h){
         this.serverSocket=socket;
         this.server=s;
         this.packets=p;
         this.table=t;
         this.ClIP=ClIP;
+        this.queues=h;
     }
     
     @Override
     public void run(){
-        boolean timedOut=false,active=true;
-        int cpuL;
-        long startTime = System.currentTimeMillis();
-        byte[] ipBytes;
-        String ip;
+        long startTime,RTT;
+        boolean active=true;
+        int cpuL,pollFreq=3000;
         
         
         byte[] sendData = new byte[1];
@@ -53,36 +54,50 @@ public class StatusManager implements Runnable {
             serverSocket.send(sendPacket);
         } catch (IOException ex) {
             Logger.getLogger(StatusManager.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        System.out.println("Sent poll to "+ClIP);                
+        }              
         
         while(active){
             byte[] receiveData;
             try {
-                sleep(3000);
+                if (table.contains(server)){
+                    startTime = System.nanoTime(); 
+                    try {
+                        serverSocket.send(sendPacket);
+                    } catch (IOException ex) {
+                        Logger.getLogger(StatusManager.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                    System.out.println("Sent poll to "+ClIP);          
                 
-                try {
-                    serverSocket.send(sendPacket);
-                } catch (IOException ex) {
-                    Logger.getLogger(StatusManager.class.getName()).log(Level.SEVERE, null, ex);
+                    receiveData = packets.poll(2,TimeUnit.SECONDS);
+                    if (receiveData!=null) {
+                        RTT=System.nanoTime() - startTime;
+                        table.remove(server);
+                        server.updateRTT((float) (RTT/1e6));
+                        table.add(server);                                
+                    }                
+
+                    if(receiveData!=null){
+                        if (table.contains(server)){
+                            cpuL = receiveData[1] & 0xFF;
+                            table.remove(server);
+                            server.updatecpuLoad(cpuL);
+                            table.add(server);           
+                        }
+                    }else{
+                        if (table.contains(server)){
+                            table.remove(server);
+                            server.setValid(0);
+                            System.out.println("Server with IP "+server.getIP()+" did not respond to poll.");
+                            table.add(server); 
+                        }
+                    }
                 }
-                System.out.println("Sent poll to "+ClIP);        
-                
-                receiveData = packets.poll(2,TimeUnit.SECONDS);
-                if(receiveData!=null){
-                    cpuL = receiveData[1] & 0xFF;
-                    table.remove(server);
-                    server.updatecpuLoad(cpuL);
-                    table.add(server);                          
-                }else{
-                    server.setValid(0);
-                    System.out.println("Server with IP "+server.getIP()+" did not respond to poll.");
-                    timedOut=true;
-                }
-                
+                if (!table.contains(server))active=false;
+                sleep(pollFreq);
             } catch (InterruptedException ex) {
                 Logger.getLogger(Monitor.class.getName()).log(Level.SEVERE, null, ex);
             }                
         }
+        queues.remove(ClIP);
     }
 }

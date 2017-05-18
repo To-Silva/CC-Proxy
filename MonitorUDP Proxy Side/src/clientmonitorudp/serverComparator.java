@@ -48,12 +48,15 @@ public class serverComparator implements Comparator<ServerStatus> {
     
     @Override
     public int compare(ServerStatus s1,ServerStatus s2) {
-        float ratio;
         
+        if (s1.getIP().equals(s2.getIP())) return 0;
         return new CompareToBuilder()
                 .append(s1.getValid(), s2.getValid())
+                .append(s1.getPacketsLost(), s2.getPacketsLost())
                 .append(s1,s2,load)
                 .append(s1, s2,speed)
+                .append(s1.getRTT(), s2.getRTT())
                 .toComparison();    
     }
+    
 }

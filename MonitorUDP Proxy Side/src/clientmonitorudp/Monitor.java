@@ -11,6 +11,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
@@ -27,22 +28,21 @@ public class Monitor implements Runnable {
     private ConcurrentSkipListSet<ServerStatus> table;
     private InetAddress ClIP;
     private int prevSeqNum;
+    private HashMap<InetAddress,ArrayBlockingQueue> queues;
     
-    public Monitor (ConcurrentSkipListSet<ServerStatus> t,ArrayBlockingQueue p,ServerStatus s,InetAddress ClIP){
+    public Monitor (ConcurrentSkipListSet<ServerStatus> t,ArrayBlockingQueue p,ServerStatus s,InetAddress ClIP,HashMap h){
         this.server=s;
         this.packets=p;
         this.table=t;
         this.ClIP=ClIP;
+        this.queues=h;
         prevSeqNum=0;
     }
     
     @Override
     public void run(){
         boolean timedOut=false,active=true;
-        int type,seqNum,cpuL;
-        long startTime = System.currentTimeMillis();
-        byte[] ipBytes;
-        String ip;
+        int seqNum;
         
         
         while(active){
@@ -57,6 +57,7 @@ public class Monitor implements Runnable {
                         server.setValid(1);
                     }else{
                         table.remove(server);
+                        queues.remove(ClIP);
                         active=false;
                         System.out.println("Server with IP "+server.getIP()+" got removed for inactivity.");
                     }

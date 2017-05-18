@@ -17,6 +17,7 @@ public class ServerStatus {
 
     private int valid;  //0 if not initialized or outdated
     private int cpuLoad,requestNum,benchmarkScore,packetsLost;
+    private float RTT;
     private float packetsLostTimeRatio;
     private InetAddress ip;
     
@@ -36,7 +37,9 @@ public class ServerStatus {
     public void setBenchmark(int b){
         benchmarkScore=b;
     }
-    
+    public void updateRTT(float r){
+        this.RTT=r;
+    }    
     public void updatecpuLoad(int c){
         this.cpuLoad=c;
     }
@@ -69,5 +72,8 @@ public class ServerStatus {
     }    
     public int getPacketsLost(){
         return this.packetsLost;
+    }
+    public float getRTT(){
+        return this.RTT;
     }
 }
