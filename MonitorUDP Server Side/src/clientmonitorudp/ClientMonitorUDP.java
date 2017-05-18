@@ -72,11 +72,9 @@ public class ClientMonitorUDP {
                             sendData[i]=b;
                             i++;
                         }                    
-                        if (pi.getSN()==0) sendData[i]=(byte)benchmarkScore;    
-                        System.out.println(i);
+                        sendData[i]=(byte)benchmarkScore;    
                         DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,IPAddress,5555);             
-                        clientSocket.send(sendPacket); 
-                        if (pi.getSN()!=0)pi.setSN(pi.getSN()+1);                          
+                        clientSocket.send(sendPacket);               
                     }else{
                         byte[] sendData = new byte[ip.length+2];
                         System.out.println("Sequence number: "+pi.getSN());
@@ -88,7 +86,7 @@ public class ClientMonitorUDP {
                         }        
                         DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,IPAddress,5555);             
                         clientSocket.send(sendPacket); 
-                        if (pi.getSN()!=0)pi.setSN(pi.getSN()+1);                          
+                        pi.setSN(pi.getSN()+1);                          
                     }
                 }
 

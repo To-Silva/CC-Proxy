@@ -28,7 +28,6 @@ public class StatusManager implements Runnable {
     private ServerStatus server;
     private ConcurrentSkipListSet<ServerStatus> table;
     private InetAddress ClIP;
-    private int prevSeqNum;
     
     public StatusManager (ConcurrentSkipListSet<ServerStatus> t,ArrayBlockingQueue p,ServerStatus s,InetAddress ClIP,DatagramSocket socket){
         this.serverSocket=socket;
@@ -36,25 +35,31 @@ public class StatusManager implements Runnable {
         this.packets=p;
         this.table=t;
         this.ClIP=ClIP;
-        prevSeqNum=0;
     }
     
     @Override
     public void run(){
         boolean timedOut=false,active=true;
-        int type,seqNum,cpuL;
+        int cpuL;
         long startTime = System.currentTimeMillis();
         byte[] ipBytes;
         String ip;
         
-        table.add(server);
+        
         byte[] sendData = new byte[1];
         sendData[0]=(byte)0;
         DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,ClIP,5555);  
+        try {
+            serverSocket.send(sendPacket);
+        } catch (IOException ex) {
+            Logger.getLogger(StatusManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        System.out.println("Sent poll to "+ClIP);                
         
         while(active){
             byte[] receiveData;
             try {
+                sleep(3000);
                 
                 try {
                     serverSocket.send(sendPacket);
@@ -74,7 +79,7 @@ public class StatusManager implements Runnable {
                     System.out.println("Server with IP "+server.getIP()+" did not respond to poll.");
                     timedOut=true;
                 }
-                sleep(3000);
+                
             } catch (InterruptedException ex) {
                 Logger.getLogger(Monitor.class.getName()).log(Level.SEVERE, null, ex);
             }                

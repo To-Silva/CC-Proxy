@@ -44,7 +44,7 @@ public class Monitor implements Runnable {
         byte[] ipBytes;
         String ip;
         
-        table.add(server);
+        
         while(active){
             byte[] receiveData;
             try {
@@ -66,7 +66,6 @@ public class Monitor implements Runnable {
                         seqNum=receiveData[1] & 0xFF;
                         if(seqNum!=0){
                             if (server.getValid()==0)server.setValid(1);
-                            System.out.println("prev: "+prevSeqNum+"\n seq: "+seqNum);
                             if ((Math.abs(seqNum-prevSeqNum)>1||seqNum==prevSeqNum)&&seqNum!=0){
                                 if (seqNum>prevSeqNum){
                                     server.updatePL(seqNum-prevSeqNum-1);

@@ -61,15 +61,14 @@ public class ServerMonitorUDP {
                     ip=new String(ipBytes);
                     InetAddress ClIP = InetAddress.getByName(ip);
                     if(!packetType0Queues.containsKey(ClIP)){
-                        
                         ArrayBlockingQueue<byte[]> packetsType0=new ArrayBlockingQueue<>(100);
                         ArrayBlockingQueue<byte[]> packetsType1=new ArrayBlockingQueue<>(100);
                         packetType0Queues.put(ClIP, packetsType0);
                         packetType1Queues.put(ClIP, packetsType1);
                         
                         benchCPU = receiveData[receivePacket.getLength()-1] & 0xFF;
-                        System.out.println(receivePacket.getLength());
                         ServerStatus stat= new ServerStatus(benchCPU,ClIP);
+                        table.add(stat);
                         Monitor monitor=new Monitor(table,packetsType0,stat,ClIP);
                         StatusManager statusMan=new StatusManager(table,packetsType1,stat,ClIP,serverSocket);
                         threadPool.execute(monitor);
@@ -78,29 +77,23 @@ public class ServerMonitorUDP {
                 }else{
                     ipBytes=Arrays.copyOfRange(receiveData,2,receivePacket.getLength());
                     ip=new String(ipBytes);
-                    System.out.println(ip);
-                    InetAddress ClIP = InetAddress.getByName(ip);                        
-                    packetType0Queues.get(ClIP).add(receiveData);    
-                    
+                    InetAddress ClIP = InetAddress.getByName(ip);     
                     if (packetType0Queues.containsKey(ClIP))packetType0Queues.get(ClIP).add(receiveData);
                 }
             }else{
                 ipBytes=Arrays.copyOfRange(receiveData,2,receivePacket.getLength());
                 ip=new String(ipBytes);
-                System.out.println(ip);
                 InetAddress ClIP = InetAddress.getByName(ip);          
                 
                 if (packetType0Queues.containsKey(ClIP)) packetType1Queues.get(ClIP).add(receiveData);
             }
-            
             //for debugging 
             Iterator it=table.iterator();
             while(it.hasNext()){
                 ServerStatus s=(ServerStatus) it.next();
                 System.out.println("host: "+(s.getIP()).toString().replaceAll(".*/", "")+"\n\t-CPU Score:"+s.getBenchmark()+"\t-CPU Load:"+s.getCPULoad()+"\n\t-Number of packets lost:"+s.getPacketsLost());
             }
-            //for debugging
-            
+            //for debugging            
         }
     }
 }
