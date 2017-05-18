@@ -28,6 +28,8 @@ public class ServerMonitorUDP {
 
     /**
      * @param args the command line arguments
+     * @throws java.net.SocketException
+     * @throws java.lang.InterruptedException
      */
     
     public static void main(String[] args) throws SocketException, IOException, InterruptedException {
@@ -35,11 +37,11 @@ public class ServerMonitorUDP {
         byte[] ipBytes;
         String ip;
         
-        HashMap<InetAddress,ArrayBlockingQueue> packetType0Queues= new HashMap<InetAddress,ArrayBlockingQueue>();
-        HashMap<InetAddress,ArrayBlockingQueue> packetType1Queues= new HashMap<InetAddress,ArrayBlockingQueue>();
+        HashMap<InetAddress,ArrayBlockingQueue> packetType0Queues= new HashMap<>();
+        HashMap<InetAddress,ArrayBlockingQueue> packetType1Queues= new HashMap<>();
         ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newCachedThreadPool();
         
-        ConcurrentSkipListSet<ServerStatus> table = new ConcurrentSkipListSet<ServerStatus>(new serverComparator());
+        ConcurrentSkipListSet<ServerStatus> table = new ConcurrentSkipListSet<>(new serverComparator());
         DatagramSocket serverSocket= new DatagramSocket(5555);
         byte[] receiveData= new byte[100];
         InetAddress Address = InetAddress.getLocalHost(); 
@@ -55,9 +57,8 @@ public class ServerMonitorUDP {
             if (type==0){
                 seqNumb=receiveData[1] & 0xFF;
                 if (seqNumb==0){
-                    ipBytes=Arrays.copyOfRange(receiveData,2,receiveData.length-1);
+                    ipBytes=Arrays.copyOfRange(receiveData,2,receivePacket.getLength()-1);
                     ip=new String(ipBytes);
-                    System.out.println(ip);
                     InetAddress ClIP = InetAddress.getByName(ip);
                     if(!packetType0Queues.containsKey(ClIP)){
                         
@@ -66,21 +67,16 @@ public class ServerMonitorUDP {
                         packetType0Queues.put(ClIP, packetsType0);
                         packetType1Queues.put(ClIP, packetsType1);
                         
-                        benchCPU = receiveData[receiveData.length-1] & 0xFF;
+                        benchCPU = receiveData[receivePacket.getLength()-1] & 0xFF;
+                        System.out.println(receivePacket.getLength());
                         ServerStatus stat= new ServerStatus(benchCPU,ClIP);
                         Monitor monitor=new Monitor(table,packetsType0,stat,ClIP);
                         StatusManager statusMan=new StatusManager(table,packetsType1,stat,ClIP,serverSocket);
                         threadPool.execute(monitor);
                         threadPool.execute(statusMan);
-
-                        byte[] sendData = new byte[1];
-                        sendData[0]=(byte)0;
-                        DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,ClIP,5555);  
-                        serverSocket.send(sendPacket);
-                        System.out.println("Permission granted to "+ClIP);        
                     }
                 }else{
-                    ipBytes=Arrays.copyOfRange(receiveData,2,receiveData.length);
+                    ipBytes=Arrays.copyOfRange(receiveData,2,receivePacket.getLength());
                     ip=new String(ipBytes);
                     System.out.println(ip);
                     InetAddress ClIP = InetAddress.getByName(ip);                        
@@ -89,7 +85,7 @@ public class ServerMonitorUDP {
                     if (packetType0Queues.containsKey(ClIP))packetType0Queues.get(ClIP).add(receiveData);
                 }
             }else{
-                ipBytes=Arrays.copyOfRange(receiveData,2,receiveData.length);
+                ipBytes=Arrays.copyOfRange(receiveData,2,receivePacket.getLength());
                 ip=new String(ipBytes);
                 System.out.println(ip);
                 InetAddress ClIP = InetAddress.getByName(ip);          

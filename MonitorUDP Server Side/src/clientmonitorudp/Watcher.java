@@ -42,17 +42,18 @@ public class Watcher implements Runnable {
 
                 receiveData = receivePacket.getData();
                 int i2 = receiveData[0] & 0xFF;
-                System.out.println("received poll");
-                synchronized(pi){
-                    if (!initialized){
-                        pi.setSN(1);
-                        initialized=true;
-                    }else{
-                        pi.setPoll(true);
-                        pi.notify(); 
+                if (i2==0){
+                    System.out.println("received poll");
+                    synchronized(pi){
+                        if (!initialized){
+                            pi.setSN(1);
+                            initialized=true;
+                        }else{
+                            pi.setPoll(true);
+                            pi.notify(); 
+                        }
                     }
                 }
-
             }
         } catch (SocketException  | UnknownHostException ex) {
             Logger.getLogger(Watcher.class.getName()).log(Level.SEVERE, null, ex);

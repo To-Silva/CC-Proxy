@@ -45,11 +45,11 @@ public class ClientMonitorUDP {
         while (true) {
             synchronized(pi){
                 i=2;
-                byte[] sendData = new byte[100];
-                
+               
                 if (pi.getSN()==100) {pi.setSN(0);}
 
                 if (pi.getPoll()){
+                    byte[] sendData = new byte[ip.length+2];
                     OperatingSystemMXBean osBean=(OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
                     cpuLD=((osBean.getSystemCpuLoad())*100);
                     cpuLoad=(int)cpuLD;
@@ -60,19 +60,36 @@ public class ClientMonitorUDP {
                         i++;
                     }
                     DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,IPAddress,5555);             
-                    clientSocket.send(sendPacket);                
+                    clientSocket.send(sendPacket);       
+                    pi.setPoll(false);
                 }else{
-                    System.out.println("Sequence number: "+pi.getSN());
-                    sendData[0]=(byte) 0;
-                    sendData[1]=(byte) pi.getSN();
-                    for(byte b : ip){
-                        sendData[i]=b;
-                        i++;
-                    }                    
-                    if (pi.getSN()==0) sendData[i]=(byte)benchmarkScore;
-                    DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,IPAddress,5555);             
-                    clientSocket.send(sendPacket); 
-                    if (pi.getSN()!=0)pi.setSN(pi.getSN()+1);  
+                    if(pi.getSN()==0) {
+                        byte[] sendData = new byte[ip.length+3];
+                        System.out.println("Sequence number: "+pi.getSN());
+                        sendData[0]=(byte) 0;
+                        sendData[1]=(byte) 0;
+                        for(byte b : ip){
+                            sendData[i]=b;
+                            i++;
+                        }                    
+                        if (pi.getSN()==0) sendData[i]=(byte)benchmarkScore;    
+                        System.out.println(i);
+                        DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,IPAddress,5555);             
+                        clientSocket.send(sendPacket); 
+                        if (pi.getSN()!=0)pi.setSN(pi.getSN()+1);                          
+                    }else{
+                        byte[] sendData = new byte[ip.length+2];
+                        System.out.println("Sequence number: "+pi.getSN());
+                        sendData[0]=(byte) 0;
+                        sendData[1]=(byte) pi.getSN();
+                        for(byte b : ip){
+                            sendData[i]=b;
+                            i++;
+                        }        
+                        DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,IPAddress,5555);             
+                        clientSocket.send(sendPacket); 
+                        if (pi.getSN()!=0)pi.setSN(pi.getSN()+1);                          
+                    }
                 }
 
                 if (!pi.getPoll()) pi.wait(1000);
