@@ -6,9 +6,7 @@
 package clientmonitorudp;
 
 import java.net.InetAddress;
-import java.util.Comparator;
-import org.apache.commons.lang3.builder.CompareToBuilder;
-
+import java.util.concurrent.TimeUnit;
 /**
  *
  * @author To_si
@@ -18,16 +16,16 @@ public class ServerStatus {
     private int valid;  //0 if not initialized or outdated
     private int cpuLoad,requestNum,benchmarkScore,packetsLost;
     private float RTT;
-    private float packetsLostTimeRatio;
     private InetAddress ip;
+    private long startTime;
     
-    public ServerStatus(int b,InetAddress i){
+    public ServerStatus(int b,InetAddress i,long t){
         benchmarkScore=b;
         requestNum=0;
         ip=i;
         packetsLost=0;
-        packetsLostTimeRatio=0;
         valid=0;
+        this.startTime=t;
     }
     
     public void setValid(int v){
@@ -50,8 +48,20 @@ public class ServerStatus {
         this.requestNum--;
     }
     
+    public float getPLRatio(){
+        return (float) (this.packetsLost/(this.getTimeElapsed()*1e9));
+    }
+    
     public void updatePL(int pl){
         this.packetsLost+=pl;
+    }
+    
+    public void resetPL(){
+        this.packetsLost=0;
+    }
+    
+    public long getTimeElapsed(){
+        return (System.nanoTime()-this.startTime);
     }
     
     public InetAddress getIP(){

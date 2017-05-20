@@ -15,27 +15,28 @@ import java.util.logging.Logger;
 
 public class TCPlayer implements Runnable {
     private ConcurrentSkipListSet<ServerStatus> table;
+    private UserInput ui;
+    private ServerSocket inputSocket;
 
-    public TCPlayer(ConcurrentSkipListSet<ServerStatus> table) {
+    public TCPlayer(ConcurrentSkipListSet<ServerStatus> table,UserInput u,ServerSocket s) {
         this.table=table;
+        this.ui=u;
+        this.inputSocket=s;
     }
     
     
     @Override
     public void run(){
         ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newCachedThreadPool();
-        ServerStatus backend;
-        ServerSocket inputSocket;
         try {
-            inputSocket = new ServerSocket(80);
-            while (true) {
+            while (!ui.getQuit()) {
                 Socket clientSocket = inputSocket.accept();
-                TCPConnection connection= new TCPConnection(table,clientSocket,inputSocket);
+                TCPConnection connection= new TCPConnection(table,clientSocket);
                 threadPool.execute(connection);
         
             }
         } catch (IOException ex) {
-            Logger.getLogger(TCPlayer.class.getName()).log(Level.SEVERE, null, ex);
         }        
+        threadPool.shutdown();
     }
 }

@@ -25,26 +25,33 @@ import java.util.logging.Logger;
  */
 public class StatusManager implements Runnable {
     private DatagramSocket serverSocket;
-    private ArrayBlockingQueue<byte[]> packets;
+    private ArrayBlockingQueue<byte[]> packetsType1;
     private ServerStatus server;
     private ConcurrentSkipListSet<ServerStatus> table;
     private InetAddress ClIP;
     private HashMap<InetAddress,ArrayBlockingQueue> queues;
+    private UserInput ui;
     
-    public StatusManager (ConcurrentSkipListSet<ServerStatus> t,ArrayBlockingQueue p,ServerStatus s,InetAddress ClIP,DatagramSocket socket,HashMap h){
+    private long pollFreq;
+    private int timeout;
+    
+    public StatusManager (ConcurrentSkipListSet<ServerStatus> t,ArrayBlockingQueue p,ServerStatus s,InetAddress ClIP,DatagramSocket socket,HashMap h,UserInput u,long pollFreq,int timeout){
         this.serverSocket=socket;
         this.server=s;
-        this.packets=p;
+        this.packetsType1=p;
         this.table=t;
         this.ClIP=ClIP;
         this.queues=h;
+        this.ui=u;
+        this.pollFreq=pollFreq;
+        this.timeout=timeout;
     }
     
     @Override
     public void run(){
         long startTime,RTT;
         boolean active=true;
-        int cpuL,pollFreq=3000;
+        int cpuL;
         
         
         byte[] sendData = new byte[1];
@@ -56,7 +63,7 @@ public class StatusManager implements Runnable {
             Logger.getLogger(StatusManager.class.getName()).log(Level.SEVERE, null, ex);
         }              
         
-        while(active){
+        while(active&&!ui.getQuit()){
             byte[] receiveData;
             try {
                 if (table.contains(server)){
@@ -68,27 +75,28 @@ public class StatusManager implements Runnable {
                     }
                     System.out.println("Sent poll to "+ClIP);          
                 
-                    receiveData = packets.poll(2,TimeUnit.SECONDS);
-                    if (receiveData!=null) {
-                        RTT=System.nanoTime() - startTime;
-                        table.remove(server);
-                        server.updateRTT((float) (RTT/1e6));
-                        table.add(server);                                
-                    }                
-
-                    if(receiveData!=null){
-                        if (table.contains(server)){
-                            cpuL = receiveData[1] & 0xFF;
-                            table.remove(server);
-                            server.updatecpuLoad(cpuL);
-                            table.add(server);           
-                        }
-                    }else{
-                        if (table.contains(server)){
-                            table.remove(server);
-                            server.setValid(0);
-                            System.out.println("Server with IP "+server.getIP()+" did not respond to poll.");
-                            table.add(server); 
+                    receiveData = packetsType1.poll(timeout,TimeUnit.SECONDS);
+                    if (table.contains(server)&&!ui.getQuit()){
+                        if (receiveData!=null) {
+                            RTT=System.nanoTime() - startTime;
+                            cpuL = receiveData[1] & 0xFF;                            
+                            synchronized (table){
+                                table.remove(server);
+                                server.updateRTT((float) (RTT/1e6));
+                                table.add(server); 
+                                
+                                table.remove(server);
+                                server.updatecpuLoad(cpuL);
+                                server.setValid(1);
+                                table.add(server); 
+                            }
+                        }else{
+                            synchronized (table){
+                                table.remove(server);
+                                server.setValid(0);
+                                System.out.println("Server with IP "+server.getIP()+" did not respond to poll.");
+                                table.add(server);
+                            }
                         }
                     }
                 }

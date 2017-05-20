@@ -20,14 +20,12 @@ import java.util.logging.Logger;
  * @author To_si
  */
 class TCPConnection implements Runnable {
-    private ConcurrentSkipListSet<ServerStatus> table;
-    private ServerSocket inputSocket;
+    private final ConcurrentSkipListSet<ServerStatus> table;
     private Socket clientSocket;
     
-    TCPConnection(ConcurrentSkipListSet<ServerStatus> table, Socket clientSocket, ServerSocket inputSocket) {
+    TCPConnection(ConcurrentSkipListSet<ServerStatus> table, Socket clientSocket) {
         this.table=table;
         this.clientSocket=clientSocket;
-        this.inputSocket=inputSocket;
     }
 
     @Override
@@ -38,11 +36,15 @@ class TCPConnection implements Runnable {
             inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             DataOutputStream outToClient = new DataOutputStream(clientSocket.getOutputStream());
             System.out.println("Received Request");
-
-            backend=table.first();
-            table.remove(backend);
-            backend.incrementRN();
-            table.add(backend);
+            synchronized(table){
+                while(table.isEmpty()){
+                    table.wait();
+                }            
+                backend=table.first();
+                table.remove(backend);
+                backend.incrementRN();
+                table.add(backend);
+            }
             Socket backendSocket=new Socket(backend.getIP(),80);
 
             BufferedReader inFromBackend = new BufferedReader(new InputStreamReader(backendSocket.getInputStream()));
@@ -51,10 +53,14 @@ class TCPConnection implements Runnable {
             outToBackend.write(inFromClient.read());
 
             outToClient.write(inFromBackend.read());
-            table.remove(backend);
-            backend.decreaseRN();
-            table.add(backend);  
+            synchronized(table){
+                table.remove(backend);
+                backend.decreaseRN();
+                table.add(backend);
+            }
         } catch (IOException ex) {
+            Logger.getLogger(TCPConnection.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InterruptedException ex) {
             Logger.getLogger(TCPConnection.class.getName()).log(Level.SEVERE, null, ex);
         }            
     }

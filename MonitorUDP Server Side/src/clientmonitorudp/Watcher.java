@@ -23,20 +23,22 @@ import java.util.logging.Logger;
 public class Watcher implements Runnable {
     
     private final PacketInfo pi;
+    private UserInput ui;
+    private DatagramSocket serverSocket;
     
-    public Watcher(PacketInfo pi){
+    public Watcher(PacketInfo pi,UserInput u,DatagramSocket s){
         this.pi=pi;
+        this.serverSocket=s;
+        this.ui=u;
     }
     
     @Override
     public void run() {
         boolean initialized=false;
         try{
-            DatagramSocket serverSocket= new DatagramSocket(5555);
-            while(true){
+            while(!ui.getQuit()){
 
                 byte[] receiveData= new byte[2];
-
                 DatagramPacket receivePacket= new DatagramPacket(receiveData,receiveData.length);
                 serverSocket.receive(receivePacket);
 
@@ -56,7 +58,7 @@ public class Watcher implements Runnable {
                 }
             }
         } catch (SocketException  | UnknownHostException ex) {
-            Logger.getLogger(Watcher.class.getName()).log(Level.SEVERE, null, ex);
+            
         } catch (IOException ex) {
             Logger.getLogger(Watcher.class.getName()).log(Level.SEVERE, null, ex);
         }      

@@ -29,13 +29,19 @@ public class Monitor implements Runnable {
     private InetAddress ClIP;
     private int prevSeqNum;
     private HashMap<InetAddress,ArrayBlockingQueue> queues;
+    private UserInput ui;
     
-    public Monitor (ConcurrentSkipListSet<ServerStatus> t,ArrayBlockingQueue p,ServerStatus s,InetAddress ClIP,HashMap h){
+    private int timeout,timeRem;
+    
+    public Monitor (ConcurrentSkipListSet<ServerStatus> t,ArrayBlockingQueue p,ServerStatus s,InetAddress ClIP,HashMap h,UserInput u,int timeout,int timeRem){
         this.server=s;
         this.packets=p;
         this.table=t;
         this.ClIP=ClIP;
         this.queues=h;
+        this.ui=u;
+        this.timeout=timeout;
+        this.timeRem=timeRem;
         prevSeqNum=0;
     }
     
@@ -45,16 +51,20 @@ public class Monitor implements Runnable {
         int seqNum;
         
         
-        while(active){
-            byte[] receiveData;
+        while(active&&!ui.getQuit()){
+            byte[] receiveData=null;
+            boolean correctPacket=false;
             try {
                 if (!timedOut){
-                    receiveData = packets.poll(2,TimeUnit.SECONDS);
+                    while(!correctPacket){
+                        receiveData = packets.poll(timeout,TimeUnit.SECONDS);
+                        correctPacket=true;
+                        if (receiveData!=null&&receiveData[0]==1) correctPacket=false;
+                    }
                 }else{
-                    receiveData = packets.poll(10,TimeUnit.SECONDS);
+                    receiveData = packets.poll(timeRem,TimeUnit.SECONDS);
                     if(receiveData!=null){
                         timedOut=false;
-                        server.setValid(1);
                     }else{
                         table.remove(server);
                         queues.remove(ClIP);
@@ -62,25 +72,40 @@ public class Monitor implements Runnable {
                         System.out.println("Server with IP "+server.getIP()+" got removed for inactivity.");
                     }
                 }
-                if(active){
+                if(active&&!ui.getQuit()){
                     if(receiveData!=null){
-                        seqNum=receiveData[1] & 0xFF;
+                        seqNum=receiveData[1];
                         if(seqNum!=0){
-                            if (server.getValid()==0)server.setValid(1);
-                            if ((Math.abs(seqNum-prevSeqNum)>1||seqNum==prevSeqNum)&&seqNum!=0){
+                            if ((Math.abs(seqNum-prevSeqNum)>1||seqNum==prevSeqNum)){
                                 if (seqNum>prevSeqNum){
-                                    server.updatePL(seqNum-prevSeqNum-1);
+                                    synchronized(table){
+                                        table.remove(server);
+                                        server.updatePL(seqNum-prevSeqNum-1);
+                                        table.add(server);
+                                    }
                                 }else{
-                                    server.updatePL((100-prevSeqNum)+seqNum-1);
+                                    synchronized(table){
+                                        table.remove(server);
+                                        server.updatePL((100-prevSeqNum)+seqNum-1);
+                                        table.add(server);
+                                    }
                                 }
                             }
                             prevSeqNum=seqNum;
                         }else{
-                                prevSeqNum=0;
-                                server.updatePL(0);
+                            prevSeqNum=0;
+                            synchronized(table){
+                                table.remove(server);
+                                server.resetPL();
+                                table.add(server);
+                            }
                         }                            
                     }else{
-                        server.setValid(0);
+                        synchronized(table){
+                            table.remove(server);
+                            server.setValid(0);
+                            table.add(server);
+                        }
                         System.out.println("Server with IP "+server.getIP()+" timed out.");
                         timedOut=true;
                     }

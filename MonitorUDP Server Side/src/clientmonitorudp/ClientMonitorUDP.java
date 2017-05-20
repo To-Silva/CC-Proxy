@@ -6,27 +6,74 @@
 package clientmonitorudp;
 
 import java.io.IOException;
-import static java.lang.Thread.sleep;
 import java.lang.management.ManagementFactory;
 import com.sun.management.OperatingSystemMXBean;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  *
  * @author To_si
  */
+
+
 public class ClientMonitorUDP {
+    private static String ipName;
+    private static long pingFreq;
+    
+    
+    public static boolean checkIP(String ip) {
+        if (ip == null || ip.isEmpty()) return false;
+        ip = ip.trim();
+        if ((ip.length() < 6) & (ip.length() > 15)) return false;
+
+        try {
+            Pattern pattern = Pattern.compile("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+            Matcher matcher = pattern.matcher(ip);
+            return matcher.matches();
+        } catch (PatternSyntaxException ex) {
+            return false;
+        }
+    }    
+    
+    public static void getInputs(){
+        boolean valid=false;
+        Scanner in = new Scanner (System.in);
+        while(!valid){        
+            System.out.println("Insert proxy IP:");
+            ipName=in.nextLine();
+            valid=checkIP(ipName);
+            if(!valid) System.out.println("Invalid IP address.");
+        }
+        valid=false;
+        while(!valid){        
+            System.out.println("Insert ping frequency (ms):");
+            pingFreq=in.nextLong();
+            valid=pingFreq>0;
+            if (!valid) System.out.println("Invalid ping frequency.");
+        }        
+        
+    }
+    
     public static void main(String[] args) throws SocketException, IOException, InterruptedException {
         double cpuLD;
-        int cpuLoad,i;
+        int i;
+        UserInput input= new UserInput();
+        
+        DatagramSocket watcherSocket= new DatagramSocket(5555);
         DatagramSocket clientSocket = new DatagramSocket();
-        InetAddress IPAddress = InetAddress.getByName("192.168.1.9");
+        
+        getInputs();
+        InetAddress IPAddress = InetAddress.getByName(ipName);
         InetAddress host = InetAddress.getLocalHost(); 
         String IPad=host.toString().replaceAll(".*/", "");
-        System.out.println(IPAddress);
+        System.out.println(host);
         byte[] ip= IPad.getBytes();
         
         long startTime = System.nanoTime();
@@ -37,12 +84,15 @@ public class ClientMonitorUDP {
         
         System.out.println("Score: "+benchmarkScore);
         
-        int ipSize= ip.length;     
         PacketInfo pi=new PacketInfo();
         
-        Thread watcher = new Thread(new Watcher(pi));
+        System.out.println("\n\tType 'quit' to exit the program.\n");
+        Thread watcher = new Thread(new Watcher(pi,input,watcherSocket));
         watcher.start();
-        while (true) {
+        Thread inputScanner= new Thread(new InputScanner(input));
+        inputScanner.start();
+        
+        while (!input.getQuit()) {
             synchronized(pi){
                 i=2;
                
@@ -52,8 +102,8 @@ public class ClientMonitorUDP {
                     byte[] sendData = new byte[ip.length+2];
                     OperatingSystemMXBean osBean=(OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
                     cpuLD=((osBean.getSystemCpuLoad())*100);
-                    cpuLoad=(int)cpuLD;
-                    sendData[0]=(byte)1;
+                    
+                    sendData[0]=1;
                     sendData[1]=(byte)cpuLD;
                     for(byte b : ip){
                         sendData[i]=b;
@@ -66,7 +116,7 @@ public class ClientMonitorUDP {
                     if(pi.getSN()==0) {
                         byte[] sendData = new byte[ip.length+3];
                         System.out.println("Sequence number: "+pi.getSN());
-                        sendData[0]=(byte) 0;
+                        sendData[0]= 0;
                         sendData[1]=(byte) 0;
                         for(byte b : ip){
                             sendData[i]=b;
@@ -78,7 +128,7 @@ public class ClientMonitorUDP {
                     }else{
                         byte[] sendData = new byte[ip.length+2];
                         System.out.println("Sequence number: "+pi.getSN());
-                        sendData[0]=(byte) 0;
+                        sendData[0]= 0;
                         sendData[1]=(byte) pi.getSN();
                         for(byte b : ip){
                             sendData[i]=b;
@@ -90,8 +140,11 @@ public class ClientMonitorUDP {
                     }
                 }
 
-                if (!pi.getPoll()) pi.wait(1000);
+                if (!pi.getPoll()) pi.wait(pingFreq);
             }
         }
+        watcherSocket.close();
+        watcher.join();
+        inputScanner.join();
     }    
 }
