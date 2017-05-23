@@ -83,17 +83,20 @@ public class StatusManager implements Runnable {
                             synchronized (table){
                                 table.remove(server);
                                 server.updateRTT((float) (RTT/1e6));
-                                table.add(server); 
-                                
-                                table.remove(server);
                                 server.updatecpuLoad(cpuL);
-                                server.setValid(1);
-                                table.add(server); 
+                                if (server.getValid()==0){
+                                    server.setValid(1);
+                                    table.add(server); 
+                                    table.notify();
+                                }else{
+                                    table.add(server); 
+                                }
                             }
                         }else{
                             synchronized (table){
                                 table.remove(server);
                                 server.setValid(0);
+                                server.updatePL(1);
                                 System.out.println("Server with IP "+server.getIP()+" did not respond to poll.");
                                 table.add(server);
                             }
@@ -106,6 +109,7 @@ public class StatusManager implements Runnable {
                 Logger.getLogger(Monitor.class.getName()).log(Level.SEVERE, null, ex);
             }                
         }
+        if (table.contains(server))table.remove(server);
         queues.remove(ClIP);
     }
 }

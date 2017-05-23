@@ -30,17 +30,19 @@ class TCPConnection implements Runnable {
 
     @Override
     public void run() {
-        ServerStatus backend;
+        int valid=0;
+        ServerStatus backend = null;
         BufferedReader inFromClient;
         try {
             inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             DataOutputStream outToClient = new DataOutputStream(clientSocket.getOutputStream());
             System.out.println("Received Request");
             synchronized(table){
-                while(table.isEmpty()){
+                while(table.isEmpty()||valid==0){
                     table.wait();
+                    backend=table.first();
+                    valid=backend.getValid();
                 }            
-                backend=table.first();
                 table.remove(backend);
                 backend.incrementRN();
                 table.add(backend);
@@ -53,10 +55,12 @@ class TCPConnection implements Runnable {
             outToBackend.write(inFromClient.read());
 
             outToClient.write(inFromBackend.read());
-            synchronized(table){
-                table.remove(backend);
-                backend.decreaseRN();
-                table.add(backend);
+            if (table.contains(backend)){
+                synchronized(table){
+                    table.remove(backend);
+                    backend.decreaseRN();
+                    table.add(backend);
+                }
             }
         } catch (IOException ex) {
             Logger.getLogger(TCPConnection.class.getName()).log(Level.SEVERE, null, ex);

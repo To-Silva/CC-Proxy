@@ -49,7 +49,7 @@ public class ServerStatus {
     }
     
     public float getPLRatio(){
-        return (float) (this.packetsLost/(this.getTimeElapsed()*1e9));
+        return (float) (this.packetsLost/(this.getTimeElapsed()*1e-9));
     }
     
     public void updatePL(int pl){

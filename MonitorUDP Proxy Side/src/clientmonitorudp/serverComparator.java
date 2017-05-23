@@ -51,7 +51,7 @@ public class serverComparator implements Comparator<ServerStatus> {
         
         if (s1.getIP().equals(s2.getIP())) return 0;
         return new CompareToBuilder()
-                .append(s1.getValid(), s2.getValid())
+                .append(s2.getValid(), s1.getValid())
                 .append(s1.getPLRatio(), s2.getPLRatio())
                 .append(s1,s2,load)
                 .append(s1, s2,speed)

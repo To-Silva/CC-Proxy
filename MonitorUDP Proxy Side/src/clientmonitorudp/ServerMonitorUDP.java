@@ -134,10 +134,9 @@ public class ServerMonitorUDP {
                     }
                 }
                 //for debugging 
-                Iterator it=table.iterator();
-                while(it.hasNext()){
-                    ServerStatus s=(ServerStatus) it.next();
-                    if (s.getValid()==1)System.out.println("host: "+(s.getIP()).toString().replaceAll(".*/", "")+"\n\t-CPU Score:"+s.getBenchmark()+"\t-CPU Load:"+s.getCPULoad()+"\t-RTT:"+s.getRTT()+"\n\t-Number of packets lost:"+s.getPacketsLost()+"\n\t-Packets lost/time elapsed:"+s.getPLRatio());
+                if (!table.isEmpty()){
+                    ServerStatus s=table.first();
+                    System.out.println("\nbest server: "+(s.getIP()).toString().replaceAll(".*/", "")+"\n\t-CPU Score:"+s.getBenchmark()+"\t-CPU Load:"+s.getCPULoad()+"\t-RTT:"+s.getRTT()+"\n\t-Number of packets lost:"+s.getPacketsLost()+"\n\t-Packets lost/time elapsed:"+s.getPLRatio()+" valid: "+s.getValid()+"\n");
                 }
                 //for debugging            
             }

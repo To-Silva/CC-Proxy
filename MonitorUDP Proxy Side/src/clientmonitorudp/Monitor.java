@@ -48,7 +48,7 @@ public class Monitor implements Runnable {
     @Override
     public void run(){
         boolean timedOut=false,active=true;
-        int seqNum;
+        int seqNum = 0;
         
         
         while(active&&!ui.getQuit()){
@@ -59,7 +59,7 @@ public class Monitor implements Runnable {
                     while(!correctPacket){
                         receiveData = packets.poll(timeout,TimeUnit.SECONDS);
                         correctPacket=true;
-                        if (receiveData!=null&&receiveData[0]==1) correctPacket=false;
+                        if (receiveData!=null&&receiveData[0]==1) {correctPacket=false;prevSeqNum=++seqNum;}
                     }
                 }else{
                     receiveData = packets.poll(timeRem,TimeUnit.SECONDS);
@@ -114,5 +114,6 @@ public class Monitor implements Runnable {
                 Logger.getLogger(Monitor.class.getName()).log(Level.SEVERE, null, ex);
             }                
         }
+        if (table.contains(server))table.remove(server);
     }
 }

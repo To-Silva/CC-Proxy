@@ -96,7 +96,7 @@ public class ClientMonitorUDP {
             synchronized(pi){
                 i=2;
                
-                if (pi.getSN()==100) {pi.setSN(1);}
+                if (pi.getSN()==101) {pi.setSN(1);}
 
                 if (pi.getPoll()){
                     byte[] sendData = new byte[ip.length+2];
