@@ -5,14 +5,15 @@
  */
 package clientmonitorudp;
 
-import java.io.IOException;
 import java.net.DatagramSocket;
 import java.util.Scanner;
 
-/**
- *
- * @author To_si
- */
+/*
+        Monitoriza input do utilizador durante execução.
+        Recebe socket UDP da Main e UserInput.
+        Caso o input seja 'quit', fecha a socket da main e faz setQuit() da classe UserInput para as outras threads
+    sairem dos seus ciclos de monitorização.
+*/
 public class InputScanner implements Runnable {
 
     private UserInput ui;

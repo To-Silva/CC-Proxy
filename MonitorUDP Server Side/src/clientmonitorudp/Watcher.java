@@ -1,24 +1,16 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+
 package clientmonitorudp;
 
 import java.io.IOException;
-import static java.lang.Thread.sleep;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- *
- * @author To_si
+/*
+    Classe que fica à escuta na socket UDP, processando polls do proxy
  */
 public class Watcher implements Runnable {
     
@@ -36,17 +28,21 @@ public class Watcher implements Runnable {
     public void run() {
         boolean initialized=false;
         try{
+            //Enquanto não for executado o comando 'quit' pelo utilizador
             while(!ui.getQuit()){
 
                 byte[] receiveData= new byte[2];
+                //Receber pacote UDP
                 DatagramPacket receivePacket= new DatagramPacket(receiveData,receiveData.length);
                 serverSocket.receive(receivePacket);
 
                 receiveData = receivePacket.getData();
                 int i2 = receiveData[0] & 0xFF;
+                //Se o pacote recebido for de poll
                 if (i2==0){
                     System.out.println("received poll");
                     synchronized(pi){
+                        //Se ainda não foi conseguida a ligação anteriormente, iniciar o processo de envio de pacotes normal
                         if (!initialized){
                             pi.setSN(1);
                             initialized=true;

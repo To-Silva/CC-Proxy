@@ -6,18 +6,16 @@
 package clientmonitorudp;
 
 import java.net.InetAddress;
-import java.util.concurrent.TimeUnit;
-/**
- *
- * @author To_si
- */
+/*
+    Guarda dados sobre o estado do servidor
+*/
 public class ServerStatus {
 
-    private int valid;  //0 if not initialized or outdated
+    private int valid;  //se não inicializado ou desatualizado (após timeout)
     private int cpuLoad,requestNum,benchmarkScore,packetsLost;
     private float RTT;
     private InetAddress ip;
-    private long startTime;
+    private long startTime; 
     
     public ServerStatus(int b,InetAddress i,long t){
         benchmarkScore=b;

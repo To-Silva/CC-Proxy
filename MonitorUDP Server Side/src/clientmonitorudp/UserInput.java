@@ -5,9 +5,8 @@
  */
 package clientmonitorudp;
 
-/**
- *
- * @author To_si
+/*
+    Classe que guarda um boleano que informa as threads se o utilizador escreveu quit no terminal.
  */
 class UserInput {
     private boolean quit;

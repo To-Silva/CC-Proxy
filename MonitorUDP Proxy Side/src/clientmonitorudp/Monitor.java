@@ -5,12 +5,7 @@
  */
 package clientmonitorudp;
 
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -18,10 +13,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- *
- * @author To_si
- */
+/*
+    Faz monitorização dos pacotes de tipo 0.
+    Actualiza pacotes perdidos.
+  
+*/
 public class Monitor implements Runnable {
     private ArrayBlockingQueue<byte[]> packets;
     private ServerStatus server;
@@ -50,11 +46,14 @@ public class Monitor implements Runnable {
         boolean timedOut=false,active=true;
         int seqNum = 0;
         
-        
+        //Enquanto o utilizador não tiver terminado e o servidor não ter sido removido da tabela...
         while(active&&!ui.getQuit()){
             byte[] receiveData=null;
             boolean correctPacket=false;
             try {
+                /*
+                    Se ainda não houve timeout, fica à espera por um pacote até ao tempo de timeout tiver passado
+                */
                 if (!timedOut){
                     while(!correctPacket){
                         receiveData = packets.poll(timeout,TimeUnit.SECONDS);
@@ -62,6 +61,10 @@ public class Monitor implements Runnable {
                         if (receiveData!=null&&receiveData[0]==1) {correctPacket=false;prevSeqNum=++seqNum;}
                     }
                 }else{
+                    /*
+                        Se houve timeout, espera novamente por outro pacote.
+                        Caso não o receba no tempo definido, o servidor é removido.
+                    */
                     receiveData = packets.poll(timeRem,TimeUnit.SECONDS);
                     if(receiveData!=null){
                         timedOut=false;
@@ -74,9 +77,16 @@ public class Monitor implements Runnable {
                 }
                 if(active&&!ui.getQuit()){
                     if(receiveData!=null){
+                        //ler número de sequencia
                         seqNum=receiveData[1];
                         if(seqNum!=0){
-                            if ((Math.abs(seqNum-prevSeqNum)>1||seqNum==prevSeqNum)){
+                            /*
+                                    Caso haja perda de pacotes.
+                                    Há perdas quando diferença absoluta entre o número de sequencia anteriormente recebido e numero de sequencia
+                                do pacote é maior que 1 ou são iguais/seqNum tem menos uma unidade do que prevSeqNum (número máximo de perdas 
+                                consecutivas é 99)
+                            */
+                            if (Math.abs(seqNum-prevSeqNum)>1||(seqNum==prevSeqNum||seqNum==prevSeqNum-1)){
                                 if (seqNum>prevSeqNum){
                                     synchronized(table){
                                         table.remove(server);
@@ -93,6 +103,10 @@ public class Monitor implements Runnable {
                             }
                             prevSeqNum=seqNum;
                         }else{
+                            /*
+                                se número de sequencia recebido for 0, reiniciar contagem de pacotes perdidos (apenas acontece quando servidor
+                                backend vai a baixo e consegue voltar a connectar antes de ser removido da tabela.
+                            */
                             prevSeqNum=0;
                             synchronized(table){
                                 table.remove(server);
@@ -101,6 +115,7 @@ public class Monitor implements Runnable {
                             }
                         }                            
                     }else{
+                        //se o pacote recebido for nulo (timeout), a entrada do servidor na tabela deixa de ser válida.
                         synchronized(table){
                             table.remove(server);
                             server.setValid(0);
@@ -114,6 +129,7 @@ public class Monitor implements Runnable {
                 Logger.getLogger(Monitor.class.getName()).log(Level.SEVERE, null, ex);
             }                
         }
+        //quando execução termina, remover servidor
         if (table.contains(server))table.remove(server);
     }
 }

@@ -10,8 +10,6 @@ package clientmonitorudp;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class TCPlayer implements Runnable {
     private ConcurrentSkipListSet<ServerStatus> table;
@@ -27,15 +25,18 @@ public class TCPlayer implements Runnable {
     
     @Override
     public void run(){
+        //pool de threads para conecções com os clientes
         ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newCachedThreadPool();
         try {
             while (!ui.getQuit()) {
                 Socket clientSocket = inputSocket.accept();
+                //recebida ligação, criar thread de conecção
                 TCPConnection connection= new TCPConnection(table,clientSocket);
                 threadPool.execute(connection);
         
             }
         } catch (IOException ex) {
+            threadPool.shutdown();
         }        
         threadPool.shutdown();
     }
